@@ -63,7 +63,8 @@ summary(wbcd_n$area_mean)
 summary(wbcd_n[c("radius_mean", "area_mean", "smoothness_mean")])
 
 # separamos la DB en un set como entrenamiento y otro como prueba
-nfilas <- nrow(wbcd_n) * .80
+nfilas <- floor(nrow(wbcd_n) * .80)
+set.seed(123)
 index <- sample(1:nrow(wbcd_n), nfilas) # 80%
 wbcd_train <- wbcd_n[index, -1] # Obtener solo las muestras
 wbcd_test <- wbcd_n[-index, -1] # Todo menos las muestras
@@ -76,7 +77,7 @@ str(wbcd_train_labels)
 # cl = factor de clasificación
 # k = número de vecinos a usar 
 # - preferentemente usar un número impar para romper empates
-# - La raiz cuadrada de las 469 es 21.65, tomamos k = 21
+# - La raiz cuadrada de las 455 es 21.65, tomamos k = 21
 wbcd_test_pred <- knn(train = wbcd_train, test = wbcd_test, cl = wbcd_train_labels, k = 21)
 
 ## ----------- Evaluamos los resultados del modelo 
@@ -94,20 +95,20 @@ CrossTable(x = wbcd_test_labels, y = wbcd_test_pred, prop.r=FALSE, prop.chisq = 
 # Normalizamos los datos usando z-score 
 # Usamos la función scale() 
 wbcd_z <- as.data.frame(scale(wbcd[-1]))
-
+head(wbcd_z)
 # Validamos la normalización
 summary(wbcd[c("radius_mean", "area_mean", "smoothness_mean")])
 summary(wbcd_z[c("radius_mean", "area_mean", "smoothness_mean")])
 
 # Creamos los datasets
-nzfilas <- nrow(wbcd_z) * .80
+nzfilas <- floor(nrow(wbcd_z) * .80)
 index <- sample(1:nrow(wbcd_z), nzfilas) # 80%
 wbcd_train <- wbcd_z[index, -1] # Obtener solo las muestras
 wbcd_test <- wbcd_z[-index, -1] # Todo menos las muestras
 
 # Clasificamos las pruebas
 wbcd_test_pred <- knn(train = wbcd_train, test = wbcd_test,
-                      cl = wbcd_train_labels, k = 10)
+                      cl = wbcd_train_labels, k = 100)
 
 ## TAREA OPCIONAL:
 # ¿Qué sucede si probamos con distintos valores para K?

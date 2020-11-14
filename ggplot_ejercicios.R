@@ -1,3 +1,9 @@
+
+library(tidyverse)
+library(treemap)
+
+data <- read_csv("Documents/CursoDataScience/datascience/rnped_limpia.csv")
+
 # PREGUNTA 2: Entre hombres y mujeres, ¿cuál fue el grupo más vulnerable en el 2011?
 ## Preparación:
 # 1) Filtrar a únicamente los registros del año 2011
@@ -6,9 +12,10 @@
 # Pro Tip: weighted.mean() calcula el promedio ponderado con las tasas y ponderando la población
 
 tempo <- data %>%
-  filter(____) %>%
-  group_by(____) %>%
-  summarise(____ = weighted.mean(____, pob))
+  filter(year == 2011) %>%
+  group_by(sexo) %>%
+  summarise(tdes = weighted.mean(tdes, pob))
+
 
 ## Gráfica: completa el código faltante
 # Genera una barra para cada sexo, graficando su tasa.
@@ -16,10 +23,10 @@ tempo <- data %>%
 # El subtítulo: por sexo
 # Añade las tasas en la cima de cada barra redondeando a 2 decimales y ajusta el texto verticalmente
 # Agrega un texto descriptivo para el eje X y para el eje Y.
-gr <- ggplot(tempo, aes(x=____, y=____)) +
+gr <- ggplot(tempo, aes(x=sexo, y=tdes)) +
   geom_bar(stat = "identity") +
-  geom_text(aes(label=round(____, _), _____=_)) +
-  ____(title="_______________", ____="______", x="____", y="___________")
+  geom_text(aes(label=round(tdes,2), vjust=-1)) +
+  labs(title="Tasa de desaparecidos 2011", subtitle="por sexo", x="sexo", y="tdes")
 
 ggsave(paste(dir2, "2.png", sep="/"), plot=gr, width=12, height=12)
 
@@ -34,21 +41,21 @@ ggsave(paste(dir2, "2.png", sep="/"), plot=gr, width=12, height=12)
 # 4) Ayudándote de las columnas total y totales, calcula el porcentaje que representa cada rango de edad
 # del total de personas desaparecidas por cada grupo.
 tempo <- data %>%
-  group_by(____, ____) %>%
-  summarise(total = ____) %>%
-  mutate(totales = ____,
-         porcentaje = round((____/____)*100, 2))
+  group_by(sexo, rango_edad) %>%
+  summarise(total = sum(total)) %>%
+  mutate(totales = sum(total),
+         porcentaje = round((total/totales)*100, 2))
 
 ## Gráfica
 # 1) Grafica los valores de la columna sexo en el eje X y los de porcentaje en eje Y
 # 2) Utiliza los valores de la columa "rango_edad" para colorear cada porcentaje
 # 3) Establece un valor para el ángulo
-gr <- ggplot(tempo, aes(x=____, y=____, fill=rango_edad)) +
+gr <- ggplot(tempo, aes(x=sexo, y=porcentaje, fill=rango_edad)) +
   geom_bar(stat="identity") + # Especificando y explícitamente
-  geom_text(aes(label=paste0(porcentaje,"%")), position=position_stack(vjust=0.5), angle=____) +
+  geom_text(aes(label=paste0(porcentaje,"%")), position=position_stack(vjust=0.5), angle=90) +
   scale_fill_manual(values=c("#ffffcc","#c7e9b4","#7fcdbb","#41b6c4","#2c7fb8","#253494")) +
   labs(title="Porcentaje de desaparecidos entre 2010 y 2015 \npor sexo y edad", 
-       x="____", y="____", fill="____") +
+       x="sexo", y="porcentaje", fill="rango_edad") +
   coord_flip() +
   theme_bw()
 ggsave(paste(dir2, "3.png", sep="/"), plot=gr, width=12, height=12)
@@ -65,13 +72,13 @@ tempo <- data %>%
 gr <- ggplot(tempo, aes(x=sexo, y=tdes)) +
   geom_bar(stat="identity", fill="#41b6c4") +
   geom_text(aes(label=tdes), vjust=-0.3, size=3) +
-  ____(____) +
+  facet_grid(sexo~ent) +
   labs(title="Tasa de desaparecidos por sexo y estado \n2010 - 2015", 
        x="Sexo", y="Tasa de desaparecidos") +
   theme_bw() +
-  theme(axis.text.x = element_text(angle=__)) # Elige un ángulo que permita visualizar correctamente el texto
+  theme(axis.text.x = element_blank()) # Elige un ángulo que permita visualizar correctamente el texto
 
-ggsave(paste(dir2, "6.png", sep="/"), plot=gr, width=20, height=12)
+ggsave(paste("Documents/CursoDataScience/datascience/graficas/", "6.png", sep="/"), plot=gr, width=20, height=12)
 
 # Ejercicios Klustera:
 

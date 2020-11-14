@@ -1,0 +1,384 @@
+---
+title: "Proyecto Knn - Klustera"
+date: '2020-11-13'
+output:
+  pdf_document: default
+---
+```{r setup, include = FALSE}
+#Cargando paquetes
+library(datos)
+library(ggplot2)
+library(dplyr)
+library(gmodels)
+library(tidyverse)
+library(class)
+library(readr)
+```
+
+##  Planteamiento de las preguntas y sus gráficas
+
+###### ¿Que día de la semana contamos con mayor número de visitantes?
+
+
+```{r, include = FALSE}
+
+
+dir <- '~/Documents/CursoDataScience/datascience/klustera/'
+
+dt <- read.csv(paste(dir, 'e.csv', sep='/'))
+
+dias <- dt %>%
+  filter(visitor=="true") %>%
+  group_by(day_of_week_tz) %>%
+  count() %>%
+  mutate(total=n)
+```
+
+```{r, echo=FALSE}
+gr <- ggplot(dias, aes(x=day_of_week_tz, y=total)) +
+  geom_point(color="blue")+
+  labs(title="Día de la semana con más visitantes", x="Día de la semana", y="Visitantes")
+gr
+```
+\pagebreak
+##### ¿Cuantos visitantes hay por día?
+
+
+```{r, include = FALSE }
+dia <- dt %>%
+  filter(visitor=="true") %>%
+  group_by(day_tz) %>%
+  count() %>%
+  mutate(total=n)
+```
+```{r,echo=FALSE}
+gr <- ggplot(dia, aes(x=day_tz, y=total)) +
+  geom_point(color="blue") +
+  labs(title="Visitantes por día", x="Día del mes", y="Visitantes")
+gr
+
+```
+
+\pagebreak 
+###### ¿Que mes cuenta con mayor número de visitantes?
+
+```{r,include = FALSE }
+mes <- dt %>%
+  filter(visitor=="true") %>%
+  group_by(month_tz) %>%
+  count() %>%
+  mutate(total=n)
+
+```
+```{r,echo=FALSE}
+gr <- ggplot(mes, aes(x=month_tz, y=total)) +
+  geom_point(color="blue") +
+  labs(title="Visitantes por mes", x="Mes", y="Visitantes")
+gr
+```
+ 
+
+
+
+\pagebreak 
+## **Entrenamiento con la Clasificación de datos mediante la categoría de los "vecinos" más cercanos (KNN)**
+
+```{r, include = FALSE}
+
+rm(list=ls())
+
+
+dir1 <- '~/Documents/CursoDataScience/datascience/klustera/'
+dfe <- read.csv(paste(dir1, "e.csv", sep="/"), stringsAsFactors = TRUE)
+dfv <- read.csv(paste(dir1, "v.csv", sep="/"), stringsAsFactors = TRUE)
+
+
+e <- dfe
+v <- dfv
+
+str(e)
+e <- e[-1]
+str(e)
+
+table(e$visitor)
+
+e$visitor <- factor(e$visitor, levels = c("true", "false"),
+             labels = c("visitante", "No Visitante"))
+
+round(prop.table(table(e$visitor)) * 100, digits = 1)
+
+summary(e[c("tiempodeses", "day_tz", "hour_tz")])
+
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+  }
+
+e_n <- as.data.frame(lapply(e[c(4,6,8)], normalize)) #list apply
+
+head(e_n)
+
+nfilas <- floor(nrow(e_n) * .80)
+set.seed(123)
+index <- sample(1:nrow(e_n), nfilas) # 80%
+e_train <- e_n[index, ] # Obtener solo las muestras
+e_test <- e_n[-index, ] # Todo menos 
+
+e_train_labels <- e[index, 7]
+e_test_labels <- e[-index, 7]
+str(e_train_labels)
+
+e_test_pred <- knn(train = e_train, test = e_test, cl = e_train_labels, k = 3)
+
+## ----------- Evaluamos los resultados del modelo 
+# Creamos una tabla para compara predicciones vs real
+CrossTable(x = e_test_labels, y = e_test_pred, prop.r=FALSE, prop.chisq = FALSE)
+
+
+dir1 <- '~/Documents/CursoDataScience/datascience/klustera/'
+dfe <- read.csv(paste(dir1, "e.csv", sep="/"), stringsAsFactors = TRUE)
+dfv <- read.csv(paste(dir1, "v.csv", sep="/"), stringsAsFactors = TRUE)
+
+e <- dfe
+v <- dfv
+
+str(e)
+e <- e[-1]
+str(e)
+
+table(e$visitor)
+
+e$visitor <- factor(e$visitor, levels = c("true", "false"),
+             labels = c("visitante", "No Visitante"))
+
+round(prop.table(table(e$visitor)) * 100, digits = 1)
+
+summary(e[c("tiempodeses", "day_tz", "hour_tz")])
+
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+  }
+
+e_n <- as.data.frame(lapply(e[c(4,6,8)], normalize)) #list apply
+
+head(e_n)
+
+nfilas <- floor(nrow(e_n) * .80)
+set.seed(123)
+index <- sample(1:nrow(e_n), nfilas) # 80%
+e_train <- e_n[index, ] # Obtener solo las muestras
+e_test <- e_n[-index, ] # Todo menos 
+
+e_train_labels <- e[1:81000, 7]
+e_test_labels <- e[81001:90000, 7]
+
+
+
+str(v)
+v <- v[-1]
+str(v)
+
+
+
+
+summary(v[c("tiempodeses", "day_tz", "hour_tz")])
+
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+}
+
+v_n <- as.data.frame(lapply(v[c(4,6,7)], normalize)) #list apply
+
+head(v_n)
+
+nfilas <- floor(nrow(v_n) * .80)
+set.seed(123)
+index <- sample(1:nrow(v_n), nfilas) # 80%
+v_train <- v_n[1:81000, ] # Obtener solo las muestras
+v_test <- v_n[81001:90000, ] # Todo menos 
+
+
+v_test_pred <- knn(train = v_train, test = v_test, cl = e_train_labels, k = 200)
+
+CrossTable(x = e_test_labels, y = v_test_pred, prop.r=FALSE, prop.chisq = FALSE)
+
+
+v$visitor <- v_test_pred
+
+write.csv(v,paste(dir1, "new_v.csv", sep = "/"))
+
+
+```
+
+
+En el proyecto de Klustera, utilizamos la Clasificación de datos mediante la categoría de los "vecinos" más cercanos (KNN)
+
+Utilizaremos dos bases de datos de registros de quienes son y no son visitantes, que le llamaremos e y v. La BD e, tiene un columna llamada visitor, el cual ya identifica a partir de las observaciones que tiene, quienes si cumplen con la condición de visitante y quienes no. Esta tabla nos servirá para poder sacar el modelo y usarla con v.
+
+Usando las columnas tiempodeses, day_tz, hour_tz, para usarlo en nuestro modelo como datos base para identificar a los visitantes, les aplicacamos una normalización por la gran diferencia entre mínimos y máximos de cada columna como se puede observar a continuación
+
+**Columna tiempodeses**
+
+`r summary(e[c("tiempodeses")])`
+
+**Columna day_tz**
+
+`r summary(e[c("day_tz")])`
+
+**Columna hour_tz**
+
+`r summary(e[c("hour_tz")])`
+
+
+Al normalizarlos, proseguimos en usarlos para obtener las muestras para nuestro modelo el cual tomamos una relación de 80-20 para los datos de entrenamiento y prueba.
+
+Usamos la formula de Knn
+
+`e_test_pred <- knn(train = e_train, test = e_test, cl = e_train_labels, k = 3)`
+
+Usamos k=3 porque la raíz cuadra de `r nrow(e)` es 499 y la consola nos indicaba que eran muchos puntos para analizar. Por lo que empezamos con un número menor. Obtenemos los siguientes datos:
+
+El total de false y true que tenemos en la base de datos e y los porcentajes que representan en visitantes y no visitantes.
+
+```{r, echo = FALSE}
+
+rm(list=ls())
+
+
+
+dir1 <- '~/Documents/CursoDataScience/datascience/klustera/'
+dfe <- read.csv(paste(dir1, "e.csv", sep="/"), stringsAsFactors = TRUE)
+dfv <- read.csv(paste(dir1, "v.csv", sep="/"), stringsAsFactors = TRUE)
+
+
+e <- dfe
+v <- dfv
+
+
+e <- e[-1]
+
+
+table(e$visitor)
+
+e$visitor <- factor(e$visitor, levels = c("true", "false"),
+             labels = c("visitante", "No Visitante"))
+
+round(prop.table(table(e$visitor)) * 100, digits = 1)
+
+#summary(e[c("tiempodeses", "day_tz", "hour_tz")])
+
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+  }
+
+e_n <- as.data.frame(lapply(e[c(4,6,8)], normalize)) #list apply
+
+
+
+nfilas <- floor(nrow(e_n) * .80)
+set.seed(123)
+index <- sample(1:nrow(e_n), nfilas) # 80%
+e_train <- e_n[index, ] # Obtener solo las muestras
+e_test <- e_n[-index, ] # Todo menos 
+
+e_train_labels <- e[index, 7]
+e_test_labels <- e[-index, 7]
+
+
+e_test_pred <- knn(train = e_train, test = e_test, cl = e_train_labels, k = 3)
+
+## ----------- Evaluamos los resultados del modelo 
+# Creamos una tabla para compara predicciones vs real
+
+```
+\pagebreak 
+Aquí observamos la tabla de confusión
+
+```{r, echo = FALSE}
+CrossTable(x = e_test_labels, y = e_test_pred, prop.r=FALSE, prop.chisq = FALSE)
+```
+\pagebreak 
+Viendo los valores de la cantidad de no visitantes en visitantes, quise buscar disminuir la cantidad de no visitantes en visitantes por lo que eleve el dato de k en 100 y da el siguiente resultado 
+
+```{r, echo = FALSE}
+e_test_pred <- knn(train = e_train, test = e_test, cl = e_train_labels, k = 100)
+CrossTable(x = e_test_labels, y = e_test_pred, prop.r=FALSE, prop.chisq = FALSE)
+```
+\pagebreak 
+por ultimo intentamos con k = 200 y obtenemos un No visitante = 0 
+
+```{r, echo = FALSE}
+e_test_pred <- knn(train = e_train, test = e_test, cl = e_train_labels, k = 200)
+CrossTable(x = e_test_labels, y = e_test_pred, prop.r=FALSE, prop.chisq = FALSE)
+```
+\pagebreak 
+Hacemos el mismo procedimiento para la base de datos v donde debemos probar nuestro modelo que obtuvimos en e y usamos un valor en k de 80 para obtener 0 de igual forma:
+
+```{r, echo = FALSE}
+rm(list=ls())
+
+
+dir1 <- '~/Documents/CursoDataScience/datascience/klustera/'
+dfe <- read.csv(paste(dir1, "e.csv", sep="/"), stringsAsFactors = TRUE)
+dfv <- read.csv(paste(dir1, "v.csv", sep="/"), stringsAsFactors = TRUE)
+
+e <- dfe
+v <- dfv
+
+
+e <- e[-1]
+
+
+table(e$visitor)
+
+e$visitor <- factor(e$visitor, levels = c("true", "false"),
+             labels = c("visitante", "No Visitante"))
+
+round(prop.table(table(e$visitor)) * 100, digits = 1)
+
+
+
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+  }
+
+e_n <- as.data.frame(lapply(e[c(4,6,8)], normalize)) #list apply
+
+
+
+nfilas <- floor(nrow(e_n) * .80)
+set.seed(123)
+index <- sample(1:nrow(e_n), nfilas) # 80%
+e_train <- e_n[index, ] # Obtener solo las muestras
+e_test <- e_n[-index, ] # Todo menos 
+
+e_train_labels <- e[1:81000, 7]
+e_test_labels <- e[81001:90000, 7]
+
+
+v <- v[-1]
+
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+}
+
+v_n <- as.data.frame(lapply(v[c(4,6,7)], normalize)) #list apply
+
+
+nfilas <- floor(nrow(v_n) * .80)
+set.seed(123)
+index <- sample(1:nrow(v_n), nfilas) # 80%
+v_train <- v_n[1:81000, ] # Obtener solo las muestras
+v_test <- v_n[81001:90000, ] # Todo menos 
+
+
+v_test_pred <- knn(train = v_train, test = v_test, cl = e_train_labels, k = 80)
+
+CrossTable(x = e_test_labels, y = v_test_pred, prop.r=FALSE, prop.chisq = FALSE)
+
+
+v$visitor <- v_test_pred
+
+write.csv(v,paste(dir1, "new_v.csv", sep = "/"))
+```
+
+Al final, agregamos a esa base de datos la columna de visitor para agregar los datos de visitantes y no visitantes a la tabla.
